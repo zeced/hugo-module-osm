@@ -1,0 +1,40 @@
+# hugo-module-osm default parameters.
+# Override any of these in your site's config/_default/params.toml.
+
+[osmMap]
+  # Leaflet source: "cdn" (default, zero setup) or "local" (requires npm install)
+  # "local" is recommended for sites with a strict Content-Security-Policy.
+  leafletSource = "cdn"
+
+  # CDN base URL for Leaflet — used when leafletSource = "cdn".
+  # Pin to a specific version for reproducible builds.
+  leafletCDN = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist"
+
+  # Path where Leaflet assets are served — used when leafletSource = "local".
+  # Run `node scripts/copy-leaflet.mjs` (or the npm postinstall hook) to
+  # populate this directory from node_modules/leaflet/dist.
+  leafletLocalPath = "/js/leaflet"
+
+  # Default zoom level (1–19).
+  defaultZoom = 15
+
+  # Fallback center [lat, lon] used when no locations are provided.
+  # Defaults to Suresnes, France — override this in your site config.
+  defaultCenter = [48.8715, 2.2219]
+
+  # Tile layer — preset name or custom dict.
+  # Built-in presets (no API key required):
+  #   "osm"               OpenStreetMap standard (default)
+  #   "cartodb-positron"  CartoDB light / minimal
+  #   "cartodb-dark"      CartoDB dark
+  #   "opentopomap"       Topographic with contour lines
+  #   "satellite"         Esri satellite imagery
+  #   "cyclosm"           Cycling-focused OSM
+  #   "humanitarian"      HOT high-contrast
+  tileLayer = "osm"
+
+  # Custom tile layer (overrides tileLayer preset):
+  # [osmMap.tileLayer]
+  #   url         = "https://{s}.example.com/{z}/{x}/{y}.png"
+  #   attribution = "&copy; My Provider"
+  #   maxZoom     = 18

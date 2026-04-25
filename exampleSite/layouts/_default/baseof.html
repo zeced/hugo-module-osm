@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ .Title }} — {{ site.Title }}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    h1   { font-size: 1.6rem; }
+    .map-wrap { border: 1px solid #ddd; border-radius: 6px; overflow: hidden; margin: 1.5rem 0; }
+    .cards    { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .osm-location-card {
+      border: 1px solid #ccc; border-radius: 6px; padding: .75rem 1rem;
+      cursor: pointer; min-width: 180px; flex: 1;
+    }
+    .osm-location-card[aria-expanded="true"] { border-color: #0078d4; background: #f0f7ff; }
+    .osm-card-expandable { overflow: hidden; max-height: 0; opacity: 0; transition: max-height .3s, opacity .3s; }
+    code { background: #f5f5f5; padding: .1em .3em; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  {{ block "main" . }}{{ end }}
+</body>
+</html>

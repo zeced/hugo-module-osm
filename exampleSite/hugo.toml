@@ -1,0 +1,13 @@
+baseURL = "http://localhost:1313/"
+title   = "hugo-module-osm — example"
+theme   = []   # loaded via go.mod
+
+[module]
+  [[module.imports]]
+    path = "github.com/zeced/hugo-module-osm"
+
+[params]
+  [params.osmMap]
+    leafletSource = "cdn"
+    defaultZoom   = 14
+    tileLayer     = "cartodb-positron"

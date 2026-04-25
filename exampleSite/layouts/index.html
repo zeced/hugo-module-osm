@@ -1,0 +1,81 @@
+{{ define "main" }}
+<h1>hugo-module-osm — live demo</h1>
+<p>
+  Leaflet is <strong>lazy-loaded</strong> — open DevTools Network and notice
+  that <code>leaflet.js</code> only fetches when the map enters the viewport,
+  a card is clicked, or the URL has a matching hash.
+</p>
+
+{{/* ── Full section: cards-left layout ── */}}
+{{ partial "osm-map-section.html" (dict
+    "page"        .
+    "id"          "demo-map"
+    "title"       "Our locations"
+    "description" "Three spots — two with coordinates, one geocoded at build time."
+    "note"        "The reception entrance is at the back of the building."
+    "layout"      "cards-left"
+    "mapHeight"   "480px"
+    "locations"   (slice
+      (dict
+        "name"  "Tour Eiffel"
+        "color" "#4f46e5"
+        "icon"  "&#9650;"
+        "slug"     "eiffel-tower"
+        "color" "#4f46e5"
+        "icon"  "&#9650;"
+        "subtitle" "Métro Bir-Hakeim"
+        "image"    "images/eiffel.jpg"
+        "lat"      48.8584
+        "lon"      2.2945
+      )
+      (dict
+        "name"     "Musée du Louvre"
+        "slug"     "louvre"
+        "color" "#e11d48"
+        "icon"  "&#9670;"
+        "subtitle" "Métro Palais-Royal"
+        "address"  (dict
+          "streetAddress"   "Rue de Rivoli"
+          "postalCode"      "75001"
+          "addressLocality" "Paris"
+          "addressCountry"  "France"
+        )
+      )
+      (dict
+        "name"     "Notre-Dame de Paris"
+        "slug"     "notre-dame"
+        "color" "#0891b2"
+        "icon"  "&#9679;"
+        "subtitle" "RER B Saint-Michel"
+        "lat"      48.8530
+        "lon"      2.3499
+      )
+    )
+) }}
+
+<hr style="margin: 3rem 0;">
+
+{{/* ── Low-level usage: custom layout calling osm-map.html directly ── */}}
+<h2>Custom layout (low-level partial)</h2>
+<p>Use <code>osm-map.html</code> when you want full control over the container:</p>
+
+<div style="border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; height:300px;">
+  <div id="custom-map" style="height:100%;"></div>
+</div>
+
+{{ partial "osm-map.html" (dict
+    "page"      .
+    "id"        "custom-map"
+    "locations" (slice
+      (dict "name" "Place de la République" "lat" 48.8676 "lon" 2.3631)
+    )
+) }}
+
+<h2>Hash links</h2>
+<p>These links load Leaflet on demand and fly to the marker:</p>
+<ul>
+  <li><a href="#eiffel-tower">→ Tour Eiffel</a></li>
+  <li><a href="#louvre">→ Musée du Louvre</a></li>
+  <li><a href="#notre-dame">→ Notre-Dame</a></li>
+</ul>
+{{ end }}

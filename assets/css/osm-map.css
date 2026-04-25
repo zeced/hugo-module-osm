@@ -1,0 +1,247 @@
+/*
+ * hugo-module-osm — section & card styles.
+ *
+ * All classes are prefixed with osm- to avoid conflicts.
+ * Override any custom property in your own stylesheet to match your design.
+ *
+ * Custom properties:
+ *   --osm-font          Base font family.           Default: inherit
+ *   --osm-section-py    Section vertical padding.   Default: 3rem
+ *   --osm-accent        Fallback card accent color. Default: #6b7280
+ *   --osm-card-bg       Card background.            Default: #ffffff
+ *   --osm-card-border   Card border color.          Default: #e5e7eb
+ *   --osm-card-radius   Card/map border radius.     Default: 0.5rem
+ *   --osm-card-shadow   Card hover shadow.          Default: 0 4px 12px rgba(0,0,0,.1)
+ *   --osm-map-radius    Map container radius.       Default: 0.5rem
+ *   --osm-note-bg       Footer note background.     Default: #f9fafb
+ *   --osm-note-border   Footer note border.         Default: #e5e7eb
+ */
+
+/* ── Section wrapper ──────────────────────────────────────────────────────── */
+
+.osm-section {
+  font-family: var(--osm-font, inherit);
+  padding: var(--osm-section-py, 3rem) 0;
+}
+
+.osm-section-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.osm-section-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.osm-section-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.osm-section-description {
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ── Grid ─────────────────────────────────────────────────────────────────── */
+
+.osm-grid {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.osm-grid--cards-left  { grid-template-columns: 1fr 2fr; }
+.osm-grid--cards-right { grid-template-columns: 2fr 1fr; }
+.osm-grid--cards-below { grid-template-columns: 1fr; }
+
+.osm-grid--cards-right .osm-cards    { order: 2; }
+.osm-grid--cards-right .osm-map-wrap { order: 1; }
+
+/* Map first on mobile so cards don't push it down */
+@media (max-width: 768px) {
+  .osm-grid--cards-left,
+  .osm-grid--cards-right { grid-template-columns: 1fr; }
+
+  .osm-grid--cards-left .osm-map-wrap,
+  .osm-grid--cards-right .osm-map-wrap { order: 1; }
+
+  .osm-grid--cards-left .osm-cards,
+  .osm-grid--cards-right .osm-cards    { order: 2; }
+}
+
+/* ── Cards column ─────────────────────────────────────────────────────────── */
+
+.osm-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+}
+
+/* ── Individual card ──────────────────────────────────────────────────────── */
+
+.osm-location-card {
+  background: var(--osm-card-bg, #ffffff);
+  border: 1px solid var(--osm-card-border, #e5e7eb);
+  border-left: 4px solid var(--osm-card-color, var(--osm-accent, #6b7280));
+  border-radius: var(--osm-card-radius, 0.5rem);
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease;
+}
+
+.osm-location-card:hover,
+.osm-location-card:focus-visible {
+  box-shadow: var(--osm-card-shadow, 0 4px 12px rgba(0, 0, 0, 0.1));
+  outline: none;
+}
+
+.osm-location-card[aria-expanded="true"] {
+  box-shadow: var(--osm-card-shadow, 0 4px 12px rgba(0, 0, 0, 0.1));
+}
+
+.osm-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  gap: 0.75rem;
+}
+
+.osm-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+}
+
+.osm-card-subtitle {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0.125rem 0 0;
+}
+
+.osm-card-icon {
+  flex-shrink: 0;
+  color: #d1d5db;
+  transition: color 0.2s ease, transform 0.2s ease;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.osm-location-card[aria-expanded="true"] .osm-card-icon {
+  color: var(--osm-card-color, var(--osm-accent, #6b7280));
+  transform: scale(1.15);
+}
+
+/* ── Expandable image area ────────────────────────────────────────────────── */
+
+.osm-card-expandable {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+.osm-card-expandable img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 200px;
+  object-fit: cover;
+}
+
+/* ── Map container ────────────────────────────────────────────────────────── */
+
+.osm-map-wrap {
+  border-radius: var(--osm-map-radius, 0.5rem);
+  overflow: hidden;
+  border: 1px solid var(--osm-card-border, #e5e7eb);
+  position: relative;
+  z-index: 0;
+}
+
+.osm-map-wrap > div {
+  width: 100%;
+  display: block;
+}
+
+/* ── Footer note ──────────────────────────────────────────────────────────── */
+
+.osm-note {
+  margin-top: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--osm-note-bg, #f9fafb);
+  border: 1px solid var(--osm-note-border, #e5e7eb);
+  border-radius: var(--osm-card-radius, 0.5rem);
+  font-size: 0.875rem;
+  color: #6b7280;
+  text-align: center;
+}
+
+/* ── Map markers ──────────────────────────────────────────────────────────── */
+
+/*
+ * Custom SVG teardrop markers, colored per-location via --osm-marker-color.
+ * The icon sits inside a white circle — works with any icon library loaded on
+ * the page, Unicode characters, or emoji. If the icon font is not loaded the
+ * glyph simply won't render; the colored teardrop still displays correctly.
+ *
+ * Override --osm-marker-color globally or per-element if needed:
+ *   .osm-marker { --osm-marker-color: #e11d48; }
+ */
+
+.osm-marker {
+  position: relative;
+  width: 32px;
+  height: 48px;
+  /* prevent Leaflet's DivIcon default styles from interfering */
+  background: none !important;
+  border: none !important;
+}
+
+.osm-marker svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+.osm-marker-pin {
+  fill: var(--osm-marker-color, var(--osm-accent, #3b82f6));
+}
+
+.osm-marker-bg {
+  fill: white;
+  fill-opacity: 0.92;
+}
+
+/* Icon sits centered inside the white circle (cx=16, cy=16, r=9 → 18px area) */
+.osm-marker-icon {
+  position: absolute;
+  top: 7px;        /* 16 - 9 = 7 */
+  left: 7px;       /* 16 - 9 = 7 */
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  /* Icon color matches the pin; override if you need white icons */
+  color: var(--osm-marker-color, var(--osm-accent, #3b82f6));
+  line-height: 1;
+}
+
+/* Normalize common icon library elements inside the marker */
+.osm-marker-icon i,
+.osm-marker-icon svg,
+.osm-marker-icon span.material-icons,
+.osm-marker-icon span.material-symbols-outlined {
+  font-size: 11px;
+  width: 11px;
+  height: 11px;
+  line-height: 1;
+}

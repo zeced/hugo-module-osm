@@ -1,0 +1,4 @@
+# Site-level param overrides for the example site.
+[osmMap]
+  leafletSource = "cdn"
+  defaultZoom   = 14

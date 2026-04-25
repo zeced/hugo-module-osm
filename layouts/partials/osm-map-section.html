@@ -1,0 +1,149 @@
+{{/*
+  osm-map-section — full map + location cards section.
+  Generalizes the nous-trouver.html pattern: cards column + map column,
+  expandable cards with optional image, hash/click navigation.
+
+  CSS is loaded from assets/css/osm-map.css via Hugo's asset pipeline
+  (minified + fingerprinted in production). Override it by placing your own
+  assets/css/osm-map.css in your project — Hugo's lookup order (project before
+  module) means your file wins automatically.
+
+  ─── Parameters (dict) ───────────────────────────────────────────────────────
+
+  page        Page     Hugo page context. Required for CSS/JS deduplication.
+  locations   []dict   Location objects — see shape below. Required.
+  id          string   HTML id for the map container. Default: "osm-map".
+  layout      string   "cards-left" (default) | "cards-right" | "cards-below".
+  title       string   Optional section heading.
+  description string   Optional subtitle below the heading.
+  note        string   Optional footer note rendered below the grid.
+  center      []float  [lat, lon] fallback center.
+  zoom        int      Zoom level override.
+  mapHeight   string   Map container height CSS value. Default: "500px".
+
+  ─── Location object ─────────────────────────────────────────────────────────
+
+  Required:
+    name      string   Card title and popup label.
+
+  Optional:
+    slug      string   Hash/anchor slug (auto-derived from name).
+    lat       float    \  Provide both OR address for Nominatim geocoding.
+    lon       float    /
+    address   object   streetAddress / postalCode / addressLocality / addressCountry
+    enable    bool     Set false to hide. Default: true.
+    color     string   CSS color for the card left-border accent.
+                       Any CSS value: "#C44536", "var(--color-primary)", etc.
+    image     string   Hugo resource path for the card image.
+                       Processed with Hugo Pipes (WebP, resized).
+    subtitle  string   Secondary line in the card header (transport, hours, etc.).
+*/}}
+
+{{- $id          := .id          | default "osm-map" -}}
+{{- $layout      := .layout      | default "cards-left" -}}
+{{- $mapHeight   := .mapHeight   | default "500px" -}}
+{{- $title       := .title       | default "" -}}
+{{- $description := .description | default "" -}}
+{{- $note        := .note        | default "" -}}
+{{- $locations   := .locations   | default slice -}}
+{{- $page        := .page -}}
+
+{{/* ── Emit CSS once per page via Hugo asset pipeline ───────────────────── */}}
+{{- $cssEmitted := false -}}
+{{- with $page }}{{- $cssEmitted = .Store.Get "osm-map-css-emitted" | default false -}}{{- end -}}
+{{- if not $cssEmitted -}}
+  {{- with $page }}{{- .Store.Set "osm-map-css-emitted" true -}}{{- end -}}
+  {{- $css := resources.Get "css/osm-map.css" -}}
+  {{- if hugo.IsProduction -}}
+    {{- $css = $css | minify | fingerprint -}}
+    <link rel="stylesheet" href="{{ $css.RelPermalink }}" integrity="{{ $css.Data.Integrity }}" crossorigin="anonymous">
+  {{- else -}}
+    <link rel="stylesheet" href="{{ $css.RelPermalink }}">
+  {{- end -}}
+{{- end -}}
+
+<section class="osm-section">
+  <div class="osm-section-inner">
+
+    {{/* ── Section header ── */}}
+    {{- if or $title $description -}}
+    <div class="osm-section-header">
+      {{- with $title       }}<h2 class="osm-section-title">{{ . }}</h2>{{- end -}}
+      {{- with $description }}<p class="osm-section-description">{{ . }}</p>{{- end -}}
+    </div>
+    {{- end -}}
+
+    {{/* ── Grid ── */}}
+    <div class="osm-grid osm-grid--{{ $layout }}">
+
+      {{/* ── Cards column ── */}}
+      <div class="osm-cards">
+        {{- range $locations -}}
+          {{- if eq .enable false }}{{- continue -}}{{- end -}}
+          {{- $name     := .name     | default "" -}}
+          {{- $slug     := .slug     | default (anchorize (printf "%v" $name)) -}}
+          {{- $color    := .color    | default "" -}}
+          {{- $subtitle := .subtitle | default "" -}}
+
+          <div class="osm-location-card"
+               data-place="{{ $slug }}"
+               tabindex="0"
+               role="button"
+               aria-expanded="false"
+               aria-label="{{ $name }}"
+               {{- with $color }} style="--osm-card-color: {{ . | safeCSS }};"{{- end -}}>
+
+            <div class="osm-card-header">
+              <div>
+                <p class="osm-card-title">{{ $name }}</p>
+                {{- with $subtitle -}}
+                  <p class="osm-card-subtitle">{{ . }}</p>
+                {{- end -}}
+                {{- with .address.streetAddress -}}
+                  <p class="osm-card-subtitle">{{ . }}</p>
+                {{- end -}}
+              </div>
+              <span class="osm-card-icon" aria-hidden="true">&#9632;</span>
+            </div>
+
+            {{- with .image -}}
+              {{- $img := resources.Get . -}}
+              {{- with $img -}}
+                <div class="osm-card-expandable">
+                  {{- with .Fill "600x240 webp q85" -}}
+                    <img src="{{ .RelPermalink }}"
+                         width="{{ .Width }}"
+                         height="{{ .Height }}"
+                         alt="{{ $name }}"
+                         loading="lazy">
+                  {{- end -}}
+                </div>
+              {{- end -}}
+            {{- end -}}
+
+          </div>
+        {{- end -}}
+      </div>
+
+      {{/* ── Map column ── */}}
+      <div class="osm-map-wrap">
+        <div id="{{ $id }}" style="height: {{ $mapHeight }};"></div>
+      </div>
+
+    </div>
+
+    {{- with $note -}}
+      <p class="osm-note">{{ . }}</p>
+    {{- end -}}
+
+  </div>
+</section>
+
+{{/* ── Config + JS via osm-map.html ── */}}
+{{ partial "osm-map.html" (dict
+    "page"      $page
+    "id"        $id
+    "locations" $locations
+    "center"    .center
+    "zoom"      .zoom
+) }}

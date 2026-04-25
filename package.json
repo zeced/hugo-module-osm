@@ -1,0 +1,15 @@
+{
+  "name": "hugo-module-osm",
+  "version": "1.0.0",
+  "description": "Hugo module — OpenStreetMap with Leaflet, lazy-loaded, Nominatim geocoding",
+  "scripts": {
+    "copy-leaflet": "node scripts/copy-leaflet.mjs"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4"
+  },
+  "devDependencies": {
+    "hugo-bin": "^0.150.0"
+  },
+  "license": "MIT"
+}

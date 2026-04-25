@@ -1,0 +1,187 @@
+{{/*
+  osm-map — config injector only. Outputs <script> tags, no HTML elements.
+
+  Resolves coordinates (Nominatim geocoding when lat/lon absent), resolves the
+  tile layer preset, builds window.osmMaps, and emits osm-map.js once per page.
+
+  The map <div> must exist in the caller's template BEFORE this partial is
+  called. Use osm-map-section.html for a batteries-included layout.
+
+  ─── Parameters (dict) ───────────────────────────────────────────────────────
+
+  id        string         HTML id of the existing map container. Default: "osm-map".
+  locations []dict         Location objects — see shape below.
+  tileLayer string | dict  Preset name or custom tile layer dict. Overrides site param.
+  center    []float        [lat, lon] fallback center when no locations are provided.
+  zoom      int            Zoom level override.
+  page      Page           Hugo page context — required for JS deduplication.
+
+  ─── Location object ─────────────────────────────────────────────────────────
+
+  name              string   Display name (required).
+  slug              string   Hash/anchor slug. Auto-derived from name if omitted.
+  lat               float    \  Provide both OR provide address for Nominatim.
+  lon               float    /
+  address:
+    streetAddress   string
+    postalCode      string
+    addressLocality string
+    addressCountry  string
+  popup             string   Custom HTML for the Leaflet popup. Defaults to name + address.
+  enable            bool     Set false to exclude. Default: true.
+
+  ─── Site params (config/_default/params.toml) ───────────────────────────────
+
+  [osmMap]
+    leafletSource    = "cdn"
+    leafletCDN       = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist"
+    leafletLocalPath = "/js/leaflet"
+    defaultZoom      = 15
+    defaultCenter    = [48.8715, 2.2219]
+    tileLayer        = "osm"   # preset name or custom dict — see presets below
+
+  ─── Built-in tile layer presets ─────────────────────────────────────────────
+
+  "osm"                Standard OpenStreetMap          (no key required)
+  "cartodb-positron"   CartoDB light/minimal           (no key required)
+  "cartodb-dark"       CartoDB dark                    (no key required)
+  "opentopomap"        Topographic with contours       (no key required)
+  "satellite"          Esri World Imagery (satellite)  (no key required)
+  "cyclosm"            Cycling-focused OSM             (no key required)
+  "humanitarian"       HOT high-contrast               (no key required)
+
+  Custom tile layer (bypasses presets):
+    [osmMap.tileLayer]
+      url         = "https://{s}.example.com/{z}/{x}/{y}.png"
+      attribution = '&copy; My Provider'
+      maxZoom     = 18
+*/}}
+
+{{- $mapID  := .id | default "osm-map" -}}
+{{- $osmCfg := site.Params.osmMap | default dict -}}
+
+{{/* ── Tile layer preset registry ────────────────────────────────────────── */}}
+{{- $presets := dict
+  "osm" (dict
+    "url"         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    "attribution" "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"
+    "maxZoom"     19
+  )
+  "cartodb-positron" (dict
+    "url"         "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+    "attribution" "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors &copy; <a href='https://carto.com/attributions'>CARTO</a>"
+    "maxZoom"     20
+    "detectRetina" true
+  )
+  "cartodb-dark" (dict
+    "url"         "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    "attribution" "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors &copy; <a href='https://carto.com/attributions'>CARTO</a>"
+    "maxZoom"     20
+    "detectRetina" true
+  )
+  "opentopomap" (dict
+    "url"         "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+    "attribution" "Map data: &copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors, <a href='https://viewfinderpanoramas.org'>SRTM</a> | Map style: &copy; <a href='https://opentopomap.org'>OpenTopoMap</a> (<a href='https://creativecommons.org/licenses/by-sa/3.0/'>CC-BY-SA</a>)"
+    "maxZoom"     17
+  )
+  "satellite" (dict
+    "url"         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+    "attribution" "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
+    "maxZoom"     19
+  )
+  "cyclosm" (dict
+    "url"         "https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png"
+    "attribution" "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors. Tiles courtesy of <a href='https://www.cyclosm.org'>CyclOSM</a>"
+    "maxZoom"     20
+  )
+  "humanitarian" (dict
+    "url"         "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
+    "attribution" "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors, Tiles style by <a href='https://www.hotosm.org/'>Humanitarian OpenStreetMap Team</a>"
+    "maxZoom"     19
+  )
+-}}
+
+{{/* ── Resolve tile layer: partial param > site param > default "osm" ───── */}}
+{{- $tileLayerParam := .tileLayer | default ($osmCfg.tileLayer | default "osm") -}}
+{{- $tileLayer := dict -}}
+{{- if reflect.IsMap $tileLayerParam -}}
+  {{- $tileLayer = $tileLayerParam -}}
+{{- else -}}
+  {{- $preset := index $presets ($tileLayerParam | lower) -}}
+  {{- if $preset -}}
+    {{- $tileLayer = $preset -}}
+  {{- else -}}
+    {{- warnf "[osm-map] unknown tileLayer preset %q — falling back to osm" $tileLayerParam -}}
+    {{- $tileLayer = index $presets "osm" -}}
+  {{- end -}}
+{{- end -}}
+
+{{/* ── Leaflet base URL ───────────────────────────────────────────────────── */}}
+{{- $leafletBase := "" -}}
+{{- if eq ($osmCfg.leafletSource | default "cdn") "local" -}}
+  {{- $leafletBase = ($osmCfg.leafletLocalPath | default "/js/leaflet") | relURL | strings.TrimSuffix "/" -}}
+{{- else -}}
+  {{- $leafletBase = $osmCfg.leafletCDN | default "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist" -}}
+{{- end -}}
+
+{{/* ── Nominatim User-Agent (required by usage policy) ──────────────────── */}}
+{{- $userAgent := printf "%s (%s)" (site.Title | default "Hugo Site") (site.Home.Permalink | default "https://example.com/") -}}
+
+{{/* ── Resolve locations ──────────────────────────────────────────────────── */}}
+{{- $resolved := slice -}}
+{{- range .locations -}}
+  {{- if eq .enable false -}}{{- continue -}}{{- end -}}
+
+  {{- $name  := .name  | default "" -}}
+  {{- $slug  := .slug  | default (anchorize (printf "%v" $name)) -}}
+  {{- $popup := .popup | default "" -}}
+
+  {{- $parts := slice -}}
+  {{- with .address.streetAddress   }}{{- $parts = $parts | append . -}}{{- end -}}
+  {{- $pcLoc := (print (or .address.postalCode "") " " (or .address.addressLocality "")) | strings.TrimSpace -}}
+  {{- if $pcLoc }}{{- $parts = $parts | append $pcLoc -}}{{- end -}}
+  {{- with .address.addressCountry  }}{{- $parts = $parts | append . -}}{{- end -}}
+  {{- $addr := delimit $parts ", " -}}
+  {{- if not $addr }}{{- $addr = $name -}}{{- end -}}
+
+  {{- $color  := .color | default "" -}}
+  {{- $icon   := .icon  | default "" -}}
+  {{- $locDict := dict "name" $name "address" $addr "slug" $slug "popup" $popup "color" $color "icon" $icon -}}
+
+  {{- if and (isset . "lat") (isset . "lon") -}}
+    {{- $locDict = merge $locDict (dict "lat" (float .lat) "lon" (float .lon)) -}}
+    {{- $resolved = $resolved | append $locDict -}}
+  {{- else -}}
+    {{- $query := ($addr | default $name) | urlquery -}}
+    {{- $url   := printf "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=%s" $query -}}
+    {{- $res   := resources.GetRemote $url (dict "headers" (dict "User-Agent" $userAgent)) -}}
+    {{- with $res -}}
+      {{- $arr := .Content | unmarshal -}}
+      {{- if gt (len $arr) 0 -}}
+        {{- $hit     := index $arr 0 -}}
+        {{- $locDict  = merge $locDict (dict "lat" (float $hit.lat) "lon" (float $hit.lon)) -}}
+        {{- $resolved = $resolved | append $locDict -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{/* ── Build and inject config ────────────────────────────────────────────── */}}
+{{- $center := .center | default ($osmCfg.defaultCenter | default (slice 48.8715 2.2219)) -}}
+{{- $zoom   := .zoom   | default ($osmCfg.defaultZoom   | default 15) -}}
+{{- $cfg    := dict "mapId" $mapID "leafletBase" $leafletBase "tileLayer" $tileLayer "center" $center "zoom" $zoom "locations" $resolved -}}
+<script>window.osmMaps = window.osmMaps || {}; window.osmMaps[{{ $mapID | jsonify | safeJS }}] = {{ $cfg | jsonify | safeJS }};</script>
+
+{{/* ── Emit osm-map.js once per page ─────────────────────────────────────── */}}
+{{- $emitted := false -}}
+{{- with .page }}{{- $emitted = .Store.Get "osm-map-js-emitted" | default false -}}{{- end -}}
+{{- if not $emitted -}}
+  {{- with .page }}{{- .Store.Set "osm-map-js-emitted" true -}}{{- end -}}
+  {{- $js := resources.Get "js/osm-map.js" -}}
+  {{- if hugo.IsProduction -}}
+    {{- $js = $js | minify | fingerprint -}}
+    <script src="{{ $js.RelPermalink }}" integrity="{{ $js.Data.Integrity }}" crossorigin="anonymous" defer></script>
+  {{- else -}}
+    <script src="{{ $js.RelPermalink }}" defer></script>
+  {{- end -}}
+{{- end -}}
